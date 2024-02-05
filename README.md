@@ -1,13 +1,5 @@
-# Welcome to Defold
+# Galactic Blitz
 
-This project was created from the "empty" project template.
+Welcome to Galactic Blitz, the ultimate space shooter experience! Brace yourself for an interstellar adventure where you pilot your spacecraft with precision using just the mouse, while automatic firepower ensures non-stop action.
 
-The settings in ["game.project"](defold://open?path=/game.project) are all the default. A bootstrap empty ["main.collection"](defold://open?path=/main/main.collection) is included.
-
-Check out [the documentation pages](https://defold.com/learn) for examples, tutorials, manuals and API docs.
-
-If you run into trouble, help is available in [our forum](https://forum.defold.com).
-
-Happy Defolding!
-
----
+In Galactic Blitz, enemies emerge from every corner of the cosmos, unleashing a relentless barrage of attacks. Your objective is clear: survive the onslaught for as long as possible and rack up the highest score!
