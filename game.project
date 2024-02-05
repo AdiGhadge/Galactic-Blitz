@@ -1,0 +1,47 @@
+[bootstrap]
+main_collection = /main/Controller.collectionc
+render = /builtins/render/default.renderc
+
+[script]
+shared_state = 1
+
+[display]
+width = 1920
+height = 1080
+update_frequency = 60
+vsync = 0
+
+[android]
+input_method = HiddenInputField
+
+[project]
+title = Galactic Blitz
+publisher = Aditya Ghadge
+developer = Aditya Ghadge
+dependencies#0 = https://github.com/britzl/gooey/archive/master.zip
+dependencies#1 = https://github.com/subsoap/defos/archive/refs/tags/v2.7.1.zip
+
+[physics]
+use_fixed_timestep = 1
+debug = 0
+max_collision_object_count = 256
+
+[factory]
+max_count = 256
+
+[collectionfactory]
+max_count = 256
+
+[sprite]
+max_count = 256
+
+[windows]
+app_icon = /Assets/Images/Icon/Icon.ico
+
+[html5]
+splash_image = /Assets/Images/Icon/Icon.png
+
+[sound]
+max_sound_buffers = 256
+max_component_count = 64
+

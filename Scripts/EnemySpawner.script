@@ -1,0 +1,53 @@
+local WINDOW_WIDTH, WINDOW_HEIGHT = 1920, 1080
+local X_PADDING = 50
+local Y_PADDING = 50
+local Z_POSITION = 0.5
+local DOWN_DIRECTION = vmath.vector3(0, -1, 0)
+local ENEMY_DISTANCE = WINDOW_HEIGHT + 100
+local X_POS_VAR = 20
+
+local rng = require "Scripts.prng"
+
+function init(self)
+	rng.seed(os.time())
+	self.factory = "#enemyFactory"
+	self.enemyFreq = 1
+	self.enemyBulletFreq = 1
+	self.enemyBulletSpeed = 400
+	self.enemySpeed = 200
+	self.enemyTimer = 1 / self.enemyFreq
+	self.target = msg.url()
+end
+
+function fixed_update(self, dt)
+	self.enemyTimer = self.enemyTimer - dt
+	if self.enemyTimer < 0 then
+		self.enemyTimer = 1 / self.enemyFreq
+		createEnemy(self)
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("set_target") then
+		self.target = message.target
+	end
+	if message_id == hash("level_increase") then
+		self.enemyFreq = message.currentLevel
+		self.enemyBulletFreq = 1 + 0.5 * message.currentLevel
+	end
+end
+
+function createEnemy(self)
+	local position = vmath.vector3()
+	local direction = DOWN_DIRECTION
+	position.x = rng.range_int(X_PADDING, WINDOW_WIDTH - X_PADDING)
+	position.y = WINDOW_HEIGHT + Y_PADDING
+	position.z = Z_POSITION
+	local enemyID = factory.create("#enemyFactory", position, nil, {target = self.target, bulletFreq = self.enemyBulletFreq, bulletSpeed = self.enemyBulletSpeed})
+	local to = position + direction * ENEMY_DISTANCE
+	go.animate(enemyID, "position", go.PLAYBACK_ONCE_FORWARD, to, go.EASING_LINEAR, ENEMY_DISTANCE/self.enemySpeed, 0, function() deleteEnemy(enemyID) end)
+end
+
+function deleteEnemy(enemyID)
+	go.delete(enemyID, true)
+end

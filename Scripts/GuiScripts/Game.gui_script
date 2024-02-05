@@ -1,0 +1,32 @@
+function init(self)
+	defos.set_cursor_visible(false)
+	self.scoreNode = gui.get_node("Score")
+	self.healthNode = gui.get_node("Health")
+	self.levelProgressNode = gui.get_node("LevelProgress")
+	self.score = 0
+	self.healthScale = 0
+	self.levelProgressScale = 0
+	sound.play("#Background", {gain = 0.05})
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("add_score") then
+		local scale = 1.2
+		self.score = message.score
+		gui.set_text(self.scoreNode, "Score:"..tostring(self.score))
+		gui.animate(self.scoreNode, gui.PROP_SCALE, vmath.vector4(scale, scale, scale, 0), gui.EASING_OUT, 0.1, 0.0, scaleDown)
+	end
+	if message_id == hash("update_health") then
+		self.healthScale = message.healthScale
+		gui.animate(self.healthNode, gui.PROP_SCALE, vmath.vector4(self.healthScale, 1, 1, 0), gui.EASING_OUT, 0.5)
+	end
+	if message_id == hash("update_level_progress") then
+		self.levelProgressScale = message.levelProgressScale
+		gui.animate(self.levelProgressNode, gui.PROP_SCALE, vmath.vector4(self.levelProgressScale, 1, 1, 0), gui.EASING_OUT, 0.5)
+	end
+end
+
+function scaleDown(self, node)
+	local scale = 1.0
+	gui.animate(node, gui.PROP_SCALE, vmath.vector4(scale, scale, scale, 0), gui.EASING_OUT, 0.05)
+end	

@@ -1,0 +1,34 @@
+
+go.property("target", msg.url())
+go.property("bulletFreq", 0)
+go.property("bulletSpeed", 0)
+
+
+function init(self)
+	self.position = go.get_world_position()
+	getGun(self)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("bullet_hit") then
+		sound.play("#Explode", {gain = 0.1})
+		msg.post("/Player", "enemy_hit")
+		go.delete(go.get_id(), true)
+	end
+	if message_id == hash("contact_point_response") then
+		if message.other_id == hash("/Player") then
+			sound.play("#Explode", {gain = 0.1})
+			msg.post(message.other_id, "enemy_collide")
+			go.delete(go.get_id(), true)
+		end
+	end
+end
+
+function getGun(self)
+	local yOffset = 35
+	local position = go.get_world_position()
+	local gunID = factory.create("#gunFactory", position, nil, {bulletFreq = self.bulletFreq, bulletSpeed = self.bulletSpeed, owner = hash("Enemy"), target = self.target})
+	go.set_parent(gunID, go.get_id(), true)
+	self.gun = gunID
+	msg.post(gunID, "fire")
+end

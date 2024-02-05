@@ -1,0 +1,88 @@
+go.property("bulletFreq", 0)
+go.property("bulletSpeed", 0)
+go.property("owner", hash(""))
+go.property("enabled", false)
+go.property("target", msg.url(""))
+
+local BULLET_DISTANCE = 2000
+
+local FIRE_DIRECTIONS = {
+	[1] = vmath.vector3(-0.18, 1, 0),
+	[2] = vmath.vector3(-0.09, 1, 0),
+	[3] = vmath.vector3(0, 1, 0),
+	[4] = vmath.vector3(0.09, 1, 0),
+	[5] = vmath.vector3(0.18, 1, 0)
+}
+
+
+function init(self)
+	math.randomseed(os.time())
+	self.bulletTimer = 1/self.bulletFreq
+	self.position = go.get_world_position()
+	self.direction_no = 0
+	self.direcion = vmath.vector3()
+	if self.owner == hash("Player") then
+		self.target = nil
+		self.factory = "#playerBulletFactory"
+	elseif self.owner == hash("Enemy") then
+		self.factory = "#enemyBulletFactory"
+	end
+end
+
+function fixed_update(self, dt)
+	self.position = go.get_world_position()
+	if self.enabled then
+		self.bulletTimer = self.bulletTimer - dt
+		if self.bulletTimer < 0 then
+			if self.target ~= nil then
+				self.targetPosition = calc_target_position(self)
+				self.direction = calc_target_direction(self)
+				self.rotation = calcRotation(self)
+			end
+			local bulletID = factory.create(self.factory, self.position, self.rotation, {timeToLive = BULLET_DISTANCE/self.bulletSpeed})
+			sound.play("#Laser", {gain = 0.01})
+			local to = self.position + self.direction * BULLET_DISTANCE
+			go.animate(bulletID, "position", go.PLAYBACK_ONCE_FORWARD, to, go.EASING_LINEAR, BULLET_DISTANCE/self.bulletSpeed, 0, function() deleteBullet(bulletID) end)
+			self.bulletTimer = 1 / self.bulletFreq
+		end
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("fire_direction_no") then 
+		self.enabled = true
+		self.direction = FIRE_DIRECTIONS[message.direction_no]
+		self.rotation = calcRotation(self)
+	elseif message_id == hash("fire_direction") then
+		self.enabled = true
+		self.direction = message.direction
+		self.rotation = calcRotation(self)
+	elseif message_id == hash("fire") then
+		self.enabled = true
+	elseif message_id == hash("stop_fire") then 
+		self.enabled = false
+	end
+	if message_id == hash("set_direction") then 
+		self.direction = message.direction
+		self.rotation = calcRotation(self)
+	end
+end
+
+function calc_target_position(self)
+	local targetPosition = go.get_world_position(self.target)
+	return targetPosition
+end
+
+function calc_target_direction(self)
+	local targetDirection = vmath.normalize(self.targetPosition - self.position)
+	return targetDirection
+end
+
+function calcRotation(self)
+	local rotation = vmath.quat_rotation_z(-math.atan2(self.direction.x, self.direction.y))
+	return rotation
+end
+
+function deleteBullet(bulletID)
+	go.delete(bulletID, true)
+end

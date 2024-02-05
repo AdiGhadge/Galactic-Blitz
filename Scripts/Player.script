@@ -1,0 +1,162 @@
+local BASE_VELOCITY = 300
+local LEFT_DIRECTION = -1
+local RIGHT_DIRECTION = 1
+local WINDOW_WIDTH, WINDOW_HEIGHT = 1920, 1080
+local INITIAL_POSITION = vmath.vector3(WINDOW_WIDTH/2,70,0.5)
+local PADDING = 50
+local BULLET_FREQ = 5
+local BULLET_SPEED = 500
+local VECTOR_UP = vmath.vector3(0, 1.0, 0)
+local ACTIVE_GUNS = {
+	[1] = {0,0,1,0,0},
+	[2] = {0,1,0,1,0},
+	[3] = {0,1,1,1,0},
+	[4] = {1,1,0,1,1},
+	[5] = {1,1,1,1,1},
+}
+local MAX_LEVEL = 5
+local MAX_HEALTH = 100
+local SCORE_INC = 100
+local STARTING_THRESHOLD = 1000
+
+function init(self)
+	msg.post("#", "acquire_input_focus")
+	resetPosition()
+	self.position = INITIAL_POSITION
+	self.direction = vmath.vector3(0)
+	self.level = 1
+	self.guns = {}
+	self.health = MAX_HEALTH
+	self.score = 0
+	self.levelProgress = 0
+	self.levelThreshold = (self.level * 0.5 + 0.5) * STARTING_THRESHOLD
+	createGuns(self)
+	setActiveGuns(self)
+	msg.post("/EnemySpawner#EnemySpawner", "set_target", {target = msg.url(go.get_id())})
+end
+
+function fixed_update(self, dt)
+	move(self)
+end
+
+function on_input(self, action_id, action)
+	-- testing leveling up
+	if action_id == hash("level_up") then
+		if action.pressed and self.level < MAX_LEVEL then
+			levelUp(self)
+		end
+	end
+	self.position.x = action.x
+	self.position.y = action.y
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("bullet_hit") then
+		updateHealth(self)
+	elseif message_id == hash("enemy_collide") then
+		updateHealth(self)
+		self.score = self.score + SCORE_INC
+		msg.post("Gui#Game", "add_score", {score = self.score})
+		updateLevel(self)
+	elseif message_id == hash("enemy_hit") then
+		self.score = self.score + SCORE_INC
+		msg.post("Gui#Game", "add_score", {score = self.score})
+		updateLevel(self)
+	end
+end
+
+function move(self)
+	local newPosition = self.position
+	newPosition = vmath.lerp(0.3, go.get_position(), newPosition)
+	go.set_position(newPosition)
+end
+
+function resetPosition()
+	go.set_position(INITIAL_POSITION)
+end
+
+function createGuns(self)
+	local xOffset = 10
+	local yOffset = 35
+	for i = -2, 2 ,1 do
+		local position = go.get_world_position()
+		position.y = position.y + yOffset
+		position.z = 0.1
+		position.x = position.x + i * xOffset
+		local gunID = factory.create("#gunFactory", position, nil, {bulletFreq = BULLET_FREQ, bulletSpeed = BULLET_SPEED, owner = hash("Player")})
+		go.set_parent(gunID, go.get_id(), true)
+		table.insert(self.guns, gunID)
+	end
+end
+
+function getDirection(self, gun_no)
+	local direction_no = 0
+	if self.level == 1 or self.level == 2 then
+		
+		direction_no = 3
+		
+	elseif self.level == 3 then
+		
+		if gun_no == 2 then
+			direction_no = 2
+		elseif gun_no == 3 then
+			direction_no = 3
+		elseif gun_no == 4 then
+			direction_no = 4
+		end
+		
+	elseif self.level == 4 then
+
+		if gun_no == 1 then
+			direction_no = 2
+		elseif gun_no == 5 then
+			direction_no = 4
+		else
+			direction_no = 3
+		end
+		
+	else 
+		direction_no = gun_no
+	end
+	
+	return direction_no
+end
+
+function setActiveGuns(self)
+	for gun_no , a_gun in ipairs(ACTIVE_GUNS[self.level]) do
+		if a_gun == 1 then
+			local direction_no = getDirection(self, gun_no)
+			msg.post(self.guns[gun_no], "fire_direction_no", {direction_no = direction_no})
+		else
+			msg.post(self.guns[gun_no], "stop_fire")
+		end
+	end
+end
+
+function updateHealth(self)
+	self.health = self.health - 10
+	sound.play("#Hurt", {gain = 0.1})
+	local healthScale = self.health/MAX_HEALTH
+	if self.health <= 0 then
+		msg.post("Controller:/Controller", "endGame", {score = self.score})
+		return
+	end
+	msg.post("Gui#Game", "update_health", {healthScale = healthScale})
+end
+
+function updateLevel(self)
+	local levelProgressScale = 1
+	if self.level < MAX_LEVEL then
+		self.levelProgress = self.levelProgress + SCORE_INC
+		if self.levelProgress >= self.levelThreshold then
+			self.levelProgress = 0
+			self.levelThreshold = (self.level * 0.5 + 0.5) * STARTING_THRESHOLD
+			self.level = self.level + 1
+			setActiveGuns(self)
+			sound.play("#LevelUp", {gain = 0.1})
+			msg.post("/EnemySpawner#EnemySpawner", "level_increase", {currentLevel = self.level})
+		end
+		levelProgressScale = self.levelProgress / self.levelThreshold
+	end
+	msg.post("Gui#Game", "update_level_progress", {levelProgressScale = levelProgressScale})
+end

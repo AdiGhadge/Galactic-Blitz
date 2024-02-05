@@ -1,0 +1,36 @@
+finalScore = 0
+
+local function show(self, proxy)
+	if self.currentProxy then
+		msg.post(self.currentProxy, "unload")
+	end
+	msg.post(proxy, "async_load")
+	pprint(proxy)
+end
+
+function init(self)
+	defos.set_fullscreen(true)
+	pprint(window.get_size())
+	msg.post(".", "acquire_input_focus")
+	show(self, "#MenuProxy")
+	msg.post("@render:", "clear_color", { color = vmath.vector4(0.15, 0.15, 0.15, 1.0) })
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("proxy_loaded") then
+		self.currentProxy = sender
+		msg.post(sender, "enable")
+	elseif message_id == hash("startGame") then
+		show(self, "#GameProxy")
+	elseif message_id == hash("endGame") then
+		finalScore = message.score
+		show(self, "#FinalScoreProxy")
+	elseif message_id == hash("showMenu") then
+		show(self, "#MenuProxy")
+	elseif message_id == hash("exitGame") then
+		sys.exit(0)
+	end
+	if message_id == hash("Click") then
+		sound.play("#Button", {gain = 1})
+	end
+end

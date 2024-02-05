@@ -1,0 +1,19 @@
+go.property("timeToLive", 0)
+
+function init(self)
+	self.deleteTimer = self.timeToLive
+end
+
+function fixed_update(self, dt)
+	self.deleteTimer = self.deleteTimer - dt
+	if self.deleteTimer < 0 then
+		go.delete(go.get_id())
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("contact_point_response") then
+		msg.post(message.other_id, "bullet_hit")
+		go.delete()
+	end
+end
